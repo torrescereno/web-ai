@@ -16,7 +16,7 @@ export default function Home() {
             </Head>
             <ParametersProvider>
                 <main
-                    className="flex justify-center p-4 min-h-screen bg-white text-black dark:bg-gray-800 dark:text-white">
+                    className="flex justify-center p-4 min-h-screen bg-gray-800 text-white">
                     <div className="container">
                         <div className="grid grid-cols-1 gap-4">
 
@@ -33,7 +33,7 @@ export default function Home() {
                                 </section>
 
                                 <article
-                                    className="p-6 bg-white border h-fit border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700"
+                                    className="p-6 bg-white border h-fit rounded-lg shadow bg-gray-800 border-gray-700"
                                 >
                                     <div>
                                         <p className="mb-6 text-center text-xl">Configuración</p>

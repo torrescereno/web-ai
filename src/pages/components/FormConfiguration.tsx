@@ -34,12 +34,12 @@ export const FormConfiguration = () => {
         <form className="space-y-6">
             <div className="mb-6">
                 <label
-                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                    className="block mb-2 text-sm font-medium text-white"
                     htmlFor="api-key">Api key
                 </label>
                 <div className="relative">
                     <input
-                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        className="bg-gray-50 border text-sm rounded-lg block w-full p-1.5 bg-gray-700 border-gray-600 placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500"
                         type={isApiKeyVisible ? "text" : "password"}
                         onChange={handleApiKey}
                         value={apiKey}
@@ -92,7 +92,7 @@ export const FormConfiguration = () => {
                 <div className="flex justify-between items-center">
                     <label
                         htmlFor="temperatura"
-                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Temperatura
+                        className="block mb-2 text-sm font-medium text-white">Temperatura
                     </label>
                     <span>{temperature}</span>
                 </div>
@@ -103,17 +103,17 @@ export const FormConfiguration = () => {
                     min={0} max={2}
                     step={0.1}
                     onChange={handleTemperatura}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gray-700"
                 />
             </div>
             <div className="mb-6">
                 <label
                     htmlFor="countries"
-                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                    className="block mb-2 text-sm font-medium text-white"
                 >Modelo</label>
                 <select
                     id="countries"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    className="border text-sm rounded-lg block w-full p-2.5 bg-gray-700 border-gray-600 placeholder-gray-400 text-white focus:ring-blue-500 focus:border-blue-500"
                 >
                     <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
                     <option value="text-davinci-003">text-davinci-003</option>
