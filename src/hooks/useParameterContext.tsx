@@ -1,4 +1,4 @@
 import {useContext} from "react";
-import {ParametersContext} from "@/pages/context/parametersConext";
+import {ParametersContext} from "@/context/parametersConext";
 
 export const useParameterContext = () => useContext(ParametersContext)

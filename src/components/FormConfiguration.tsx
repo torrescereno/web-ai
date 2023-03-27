@@ -1,5 +1,5 @@
 import {ChangeEvent, MouseEvent, useEffect, useState} from "react"
-import {useParameterContext} from "@/pages/hooks/useParameterContext";
+import {useParameterContext} from "@/hooks/useParameterContext";
 import {getStorageData} from "@/utils/utils";
 
 export const FormConfiguration = () => {

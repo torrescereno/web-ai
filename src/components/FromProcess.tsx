@@ -1,7 +1,7 @@
 import {useState} from "react";
 import {createFFmpeg, fetchFile} from '@ffmpeg/ffmpeg';
 import {Configuration, OpenAIApi} from "openai";
-import {useParameterContext} from "@/pages/hooks/useParameterContext";
+import {useParameterContext} from "@/hooks/useParameterContext";
 import {ChatCompletionRequestMessage} from "openai/dist/api";
 
 
