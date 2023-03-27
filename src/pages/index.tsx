@@ -1,7 +1,7 @@
 import Head from 'next/head'
-import {FromProcess} from '@/pages/components/FromProcess'
-import {FormConfiguration} from "@/pages/components/FormConfiguration";
-import {ParametersProvider} from "@/pages/context/parametersConext";
+import {FromProcess} from '@/components/FromProcess'
+import {FormConfiguration} from "@/components/FormConfiguration";
+import {ParametersProvider} from "@/context/parametersConext";
 
 export default function Home() {
 
@@ -32,7 +32,7 @@ export default function Home() {
                                 </section>
 
                                 <article
-                                    className="p-6 bg-white border h-fit rounded-lg shadow bg-gray-800 border-gray-700"
+                                    className="p-6 border h-fit rounded-lg shadow bg-gray-800 border-gray-700"
                                 >
                                     <div>
                                         <p className="mb-6 text-center text-xl">Configuración</p>
