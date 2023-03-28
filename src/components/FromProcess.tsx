@@ -231,9 +231,13 @@ export const FromProcess = () => {
             }
 
             <div>
-                <p>
-                    Prompt: {promptResume}
-                </p>
+                {
+                    promptResume && (
+                        <p>
+                            Prompt: {promptResume}
+                        </p>
+                    )
+                }
             </div>
 
             {
