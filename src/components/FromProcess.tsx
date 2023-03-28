@@ -8,18 +8,84 @@ import {ChatCompletionRequestMessage} from "openai/dist/api";
 export const FromProcess = () => {
 
     const {apiKey} = useParameterContext()
-    const [file, setFile] = useState<File>();
-    const [completions, setCompletions] = useState("");
-    const [loading, setLoading] = useState(false);
+    const [file, setFile] = useState<File>()
+    const [completions, setCompletions] = useState("")
+    const [promptResume, setPromptResume] = useState("")
+    const [loading, setLoading] = useState(false)
 
     const handleFileUpload = (e: any) => {
         setFile(e.currentTarget.files[0])
     };
 
-    const handleProcess = async (e: any) => {
+    const handleFirstBalanceProcess = async (e: any) => {
         e.preventDefault()
 
         setCompletions("")
+        setPromptResume("Se analiza cada cuenta del balance y se indican las normativas internacionales de contabilidad que le podrían aplicar a cada cuenta contable, también se indica expresamente aquellos casos que la información de las cuentas no sea suficiente para indicar la normativa aplicable")
+
+        if (!file) {
+            alert("Por favor cargue un archivo");
+            return;
+        }
+
+        try {
+            if (file.type.includes("text/csv")) {
+                setLoading(true)
+                await handleCompletion([
+                    {
+                        "role": "user",
+                        "content": "Analiza cada cuenta del balance e indícanos como si fueras un experto contador auditor las normativas internacionales de contabilidad que le podrían aplicar a cada cuenta contable, en aquellos casos que la información de las cuentas no sea suficiente para indicar la normativa aplicable también indicarlo expresamente"
+                    },
+                    {"role": "user", "content": await file.text() as string},
+                ])
+            } else {
+                alert("Formato no soportado")
+            }
+
+        } catch (e) {
+            console.log(e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSecondBalanceProcess = async (e: any) => {
+        e.preventDefault()
+
+        setCompletions("")
+        setPromptResume("Analiza el balance y genera un interpretación global, estado de la situación financiera de la empresa, se menciona los principales índices financieros que puedas calcular con la información del balance y también cualquier anomalía que se puedan observar en las cifras o aspectos que se deberían revisar")
+
+        if (!file) {
+            alert("Por favor cargue un archivo");
+            return;
+        }
+
+        try {
+            if (file.type.includes("text/csv")) {
+                setLoading(true)
+                await handleCompletion([
+                    {
+                        "role": "user",
+                        "content": "Analiza el balance como un experto contador auditor y dame una interpretación global del balance estilo resumen ejecutivo, estado de la situación financiera de la empresa, menciona los principales índices financieros que puedas calcular con la información del balance y menciona cualquier anomalía que puedas observar en las cifras o aspectos que se deberían revisar"
+                    },
+                    {"role": "user", "content": await file.text() as string},
+                ])
+            } else {
+                alert("Formato no soportado")
+            }
+
+        } catch (e) {
+            console.log(e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleAudioProcess = async (e: any) => {
+        e.preventDefault()
+
+        setCompletions("")
+        setPromptResume("Genera un correo con la minuta y resumen de la reunión")
 
         if (!file) {
             alert("Por favor cargue un archivo");
@@ -29,19 +95,14 @@ export const FromProcess = () => {
         try {
             setLoading(true)
 
+
             if (file.type.includes('video/mp4')) {
                 await handleAudio()
                 const transcriptionStorage = localStorage.getItem('transcription')
                 await handleCompletion([
                     {role: "user", content: "Hacer una minuta y un resumen de la siguiente transcripción de una reunión"},
                     {role: "user", content: transcriptionStorage?.substring(0, 3000) || ""},
-                    {role: "user", content: "Redacta un correo con esta informaición para enviar al cliente"}
-                ])
-            } else if (file.type.includes("text/csv")) {
-                await handleCompletion([
-                    {"role": "user", "content": "me puedes redactar un breve análisis como si fueras un experto Contador Auditor"},
-                    {"role": "user", "content": await file.text() as string},
-                    {"role": "user", "content": "Redacta pruebas de auditoría para cada una de las cuentas"}
+                    {role: "user", content: "Redacta un correo con esta información para enviar al cliente"}
                 ])
             } else {
                 alert("Formato no soportado")
@@ -53,7 +114,6 @@ export const FromProcess = () => {
             setLoading(false)
         }
     };
-
 
     const handleAudio = async () => {
 
@@ -114,7 +174,6 @@ export const FromProcess = () => {
         setCompletions(completion.data.choices[0].message?.content || "")
     }
 
-
     return (
         < form className="space-y-6 w-3/5">
             <div>
@@ -131,17 +190,50 @@ export const FromProcess = () => {
                     onChange={handleFileUpload}
                 />
             </div>
+            {
+                file?.type.includes('video/mp4') && (
+                    <div>
+                        <button
+                            type="submit"
+                            onClick={handleAudioProcess}
+                            disabled={loading}
+                            className="text-white w-full focus:outline-none focus:ring-blue-300 focus:ring-blue-800 font-medium rounded-lg text-sm py-2 text-center bg-blue-600 hover:bg-blue-700"
+                        >
+                            {loading ? "Cargando..." : "Generar resumen de la reunión"} </button
+                        >
+                    </div>
+                )
+            }
 
+            {
+                file?.type.includes('text/csv') && (
+                    <div className="flex justify-between gap-2">
+                        <button
+                            type="submit"
+                            onClick={handleFirstBalanceProcess}
+                            disabled={loading}
+                            className="text-white w-full focus:outline-none focus:ring-blue-300 focus:ring-blue-800 font-medium rounded-lg text-sm py-2 text-center bg-blue-600 hover:bg-blue-700"
+                        >
+                            Primer análisis
+                        </button
+                        >
+                        <button
+                            type="submit"
+                            onClick={handleSecondBalanceProcess}
+                            disabled={loading}
+                            className="text-white w-full focus:outline-none focus:ring-blue-300 focus:ring-blue-800 font-medium rounded-lg text-sm py-2 text-center bg-blue-600 hover:bg-blue-700"
+                        >
+                            Segundo análisis
+                        </button
+                        >
+                    </div>
+                )
+            }
 
             <div>
-                <button
-                    type="submit"
-                    onClick={handleProcess}
-                    disabled={loading}
-                    className="text-white w-full focus:outline-none focus:ring-blue-300 focus:ring-blue-800 font-medium rounded-lg text-sm py-2 text-center bg-blue-600 hover:bg-blue-700"
-                >
-                    {loading ? "Cargando..." : "Procesar"} </button
-                >
+                <p>
+                    Prompt: {promptResume}
+                </p>
             </div>
 
             {
@@ -168,6 +260,7 @@ export const FromProcess = () => {
                         </div>
                     </>)
             }
+
         </form>
     )
 }
