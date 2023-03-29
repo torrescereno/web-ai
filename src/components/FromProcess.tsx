@@ -81,6 +81,36 @@ export const FromProcess = () => {
         }
     }
 
+    const handleThirdBalanceProcess = async (e: any) => {
+        e.preventDefault()
+
+        setCompletions("")
+        setPromptResume("Genera un breve análisis y redacta pruebas para cada una de las cuentas")
+
+        if (!file) {
+            alert("Por favor cargue un archivo");
+            return;
+        }
+
+        try {
+            if (file.type.includes("text/csv")) {
+                setLoading(true)
+                await handleCompletion([
+                    {"role": "user", "content": "me puedes redactar un breve análisis como si fueras un experto Contador Auditor"},
+                    {"role": "user", "content": await file.text() as string},
+                    {"role": "user", "content": "Redacta pruebas de auditoría para cada una de las cuentas"}
+                ])
+            } else {
+                alert("Formato no soportado")
+            }
+
+        } catch (e) {
+            console.log(e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const handleAudioProcess = async (e: any) => {
         e.preventDefault()
 
@@ -224,8 +254,15 @@ export const FromProcess = () => {
                             className="text-white w-full focus:outline-none focus:ring-blue-300 focus:ring-blue-800 font-medium rounded-lg text-sm py-2 text-center bg-blue-600 hover:bg-blue-700"
                         >
                             Segundo análisis
-                        </button
+                        </button>
+                        <button
+                            type="submit"
+                            onClick={handleThirdBalanceProcess}
+                            disabled={loading}
+                            className="text-white w-full focus:outline-none focus:ring-blue-300 focus:ring-blue-800 font-medium rounded-lg text-sm py-2 text-center bg-blue-600 hover:bg-blue-700"
                         >
+                            Tercer análisis
+                        </button>
                     </div>
                 )
             }
