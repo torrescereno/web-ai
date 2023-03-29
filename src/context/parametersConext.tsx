@@ -31,7 +31,7 @@ export const ParametersContext = createContext<ParametersContent>({
 export const ParametersProvider = ({children}: ParametersProviderProps) => {
 
     const [apiKey, setApiKey] = useState("")
-    const [temperature, setTemperature] = useState("0")
+    const [temperature, setTemperature] = useState("")
     const [model, setModel] = useState("")
 
 

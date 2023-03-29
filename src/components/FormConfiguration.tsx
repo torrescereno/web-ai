@@ -4,12 +4,12 @@ import {getStorageData} from "@/utils/utils";
 
 export const FormConfiguration = () => {
 
-    const {apiKey, setApiKey, setModel, temperature, setTemperature} = useParameterContext()
+    const {apiKey, setApiKey, model, setModel, temperature, setTemperature} = useParameterContext()
     const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
 
     useEffect(() => {
         setApiKey(getStorageData("apiKey", "") || "")
-        setModel(getStorageData("model", "") || "")
+        setModel(getStorageData("model", "gpt-3.5-turbo") || "")
         setTemperature(getStorageData("temperature", "0") || "")
     }, [setApiKey, setModel, setTemperature])
 
@@ -22,6 +22,11 @@ export const FormConfiguration = () => {
     const handleApiKey = (e: ChangeEvent<HTMLInputElement>) => {
         setApiKey(e.target.value)
         localStorage.setItem("apiKey", e.target.value)
+    }
+
+    const handleModel = (e: ChangeEvent<HTMLSelectElement>) => {
+        setModel(e.target.value)
+        localStorage.setItem("model", e.target.value)
     }
 
 
@@ -112,19 +117,12 @@ export const FormConfiguration = () => {
                     className="block mb-2 text-sm font-medium text-white"
                 >Modelo</label>
                 <select
+                    onChange={handleModel} value={model}
                     id="countries"
                     className="border text-sm rounded-lg block w-full p-2.5 bg-gray-700 border-gray-600 placeholder-gray-400 text-white focus:ring-blue-500 focus:border-blue-500"
                 >
                     <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                    <option value="text-davinci-003">text-davinci-003</option>
-                    <option value="text-davinci-002">text-davinci-002</option>
-                    <option value="text-curie-001">text-curie-001</option>
-                    <option value="text-babbage-001">text-babbage-001</option>
-                    <option value="text-ada-001">text-ada-001</option>
-                    <option value="davinci">davinci</option>
-                    <option value="curie">curie</option>
-                    <option value="babbage">babbage</option>
-                    <option value="ada">ada</option>
+                    <option value="gpt-3.5-turbo-0301">gpt-3.5-turbo-0301</option>
                 </select>
             </div>
         </form>

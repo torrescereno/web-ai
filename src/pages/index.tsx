@@ -8,7 +8,7 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>WEB AI</title>
+                <title>DEMO WEB AI</title>
                 <meta name="description" content="Aplicación de prueba para usar open ai api"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <link rel="icon" href="/favicon.ico"/>

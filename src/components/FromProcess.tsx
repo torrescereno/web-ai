@@ -7,7 +7,7 @@ import {ChatCompletionRequestMessage} from "openai/dist/api";
 
 export const FromProcess = () => {
 
-    const {apiKey} = useParameterContext()
+    const {apiKey, model, temperature} = useParameterContext()
     const [file, setFile] = useState<File>()
     const [completions, setCompletions] = useState("")
     const [promptResume, setPromptResume] = useState("")
@@ -197,8 +197,9 @@ export const FromProcess = () => {
         const openai = new OpenAIApi(configuration);
 
         const completion = await openai.createChatCompletion({
-            model: "gpt-3.5-turbo",
-            messages: prompt
+            model,
+            messages: prompt,
+            temperature: +temperature,
         });
 
         setCompletions(completion.data.choices[0].message?.content || "")
