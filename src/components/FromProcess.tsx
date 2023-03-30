@@ -13,9 +13,24 @@ export const FromProcess = () => {
     const [promptResume, setPromptResume] = useState("")
     const [loading, setLoading] = useState(false)
 
+
+    const fetchBalance = async (textPrompt: string) => {
+
+        const textFile = await file?.text() as string
+
+        const res = await fetch("/api/balance", {
+            method: "POST",
+            body: JSON.stringify({apiKey, prompt: textPrompt, text: textFile})
+        });
+
+        const resultBalance = await res.json()
+        setCompletions(resultBalance.response)
+    }
+
     const handleFileUpload = (e: any) => {
         setFile(e.currentTarget.files[0])
     };
+
 
     const handleFirstBalanceProcess = async (e: any) => {
         e.preventDefault()
@@ -31,13 +46,8 @@ export const FromProcess = () => {
         try {
             if (file.type.includes("text/csv")) {
                 setLoading(true)
-                await handleCompletion([
-                    {
-                        "role": "user",
-                        "content": "Analiza cada cuenta del balance e indícanos como si fueras un experto contador auditor las normativas internacionales de contabilidad que le podrían aplicar a cada cuenta contable, en aquellos casos que la información de las cuentas no sea suficiente para indicar la normativa aplicable también indicarlo expresamente"
-                    },
-                    {"role": "user", "content": await file.text() as string},
-                ])
+                await fetchBalance("Analiza cada cuenta del balance como un experto contador auditor e indícanos como si fueras un experto contador auditor las normativas internacionales de contabilidad que le podrían aplicar a cada cuenta contable, en aquellos casos que la información de las cuentas no sea suficiente para indicar la normativa aplicable también indicarlo expresamente")
+
             } else {
                 alert("Formato no soportado")
             }
@@ -63,13 +73,7 @@ export const FromProcess = () => {
         try {
             if (file.type.includes("text/csv")) {
                 setLoading(true)
-                await handleCompletion([
-                    {
-                        "role": "user",
-                        "content": "Analiza el balance como un experto contador auditor y dame una interpretación global del balance estilo resumen ejecutivo, estado de la situación financiera de la empresa, menciona los principales índices financieros que puedas calcular con la información del balance y menciona cualquier anomalía que puedas observar en las cifras o aspectos que se deberían revisar"
-                    },
-                    {"role": "user", "content": await file.text() as string},
-                ])
+                await fetchBalance("Analiza el balance como un experto contador auditor y dame una interpretación global del balance estilo resumen ejecutivo, estado de la situación financiera de la empresa, menciona los principales índices financieros que puedas calcular con la información del balance y menciona cualquier anomalía que puedas observar en las cifras o aspectos que se deberían revisar")
             } else {
                 alert("Formato no soportado")
             }
@@ -95,11 +99,7 @@ export const FromProcess = () => {
         try {
             if (file.type.includes("text/csv")) {
                 setLoading(true)
-                await handleCompletion([
-                    {"role": "user", "content": "me puedes redactar un breve análisis como si fueras un experto Contador Auditor"},
-                    {"role": "user", "content": await file.text() as string},
-                    {"role": "user", "content": "Redacta pruebas de auditoría para cada una de las cuentas"}
-                ])
+                await fetchBalance("Redacta pruebas de auditoría para cada una de las cuentas")
             } else {
                 alert("Formato no soportado")
             }
@@ -204,6 +204,7 @@ export const FromProcess = () => {
 
         setCompletions(completion.data.choices[0].message?.content || "")
     }
+
 
     return (
         < form className="space-y-6 w-3/5">

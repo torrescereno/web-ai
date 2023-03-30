@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    swcMinify: true,
     pageExtensions: ['html', 'jsx', 'js', 'tsx', 'ts'],
+    webpack(config) {
+        config.experiments = {...config.experiments, topLevelAwait: true};
+        return config;
+    },
     headers: async () => {
         return [
             {
