@@ -20,7 +20,7 @@ export const FromProcess = () => {
 
         const res = await fetch("/api/balance", {
             method: "POST",
-            body: JSON.stringify({apiKey, prompt: textPrompt, text: textFile})
+            body: JSON.stringify({apiKey, prompt: textPrompt, text: textFile, temperature: +temperature})
         });
 
         const resultBalance = await res.json()

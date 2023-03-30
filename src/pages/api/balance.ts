@@ -10,8 +10,8 @@ dotenv.config()
 
 export default async function handler(req: any, res: any) {
 
-    const {prompt, apiKey, text} = JSON.parse(req.body)
-    const model = new OpenAI({openAIApiKey: apiKey});
+    const {prompt, apiKey, text, temperature} = JSON.parse(req.body)
+    const model = new OpenAI({temperature: +temperature, openAIApiKey: apiKey});
 
     const textSplitter = new RecursiveCharacterTextSplitter({chunkSize: 1000});
     const docs = await textSplitter.createDocuments([text]);
