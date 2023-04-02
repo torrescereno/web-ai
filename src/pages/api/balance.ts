@@ -1,3 +1,4 @@
+import type {NextApiRequest, NextApiResponse} from 'next';
 import {OpenAIChat} from "langchain/llms";
 import {RecursiveCharacterTextSplitter} from "langchain/text_splitter";
 import {HNSWLib} from "langchain/vectorstores";
@@ -6,10 +7,11 @@ import {LLMChain, ChatVectorDBQAChain, loadQAChain} from "langchain/chains";
 import {PromptTemplate} from 'langchain/prompts';
 
 import * as dotenv from "dotenv";
+import {CallbackManager} from "langchain/callbacks";
 
 dotenv.config()
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
 
     const {prompt, apiKey, text, temperature} = JSON.parse(req.body)
 
@@ -43,6 +45,12 @@ export default async function handler(req: any, res: any) {
             openAIApiKey: apiKey,
             temperature: 0,
             modelName: 'gpt-3.5-turbo',
+            streaming: false,
+            callbackManager: CallbackManager.fromHandlers({
+                async handleLLMNewToken(token) {
+                    console.log(token);
+                },
+            })
         }),
         {prompt: QA_PROMPT},
     );
@@ -51,13 +59,16 @@ export default async function handler(req: any, res: any) {
         vectorstore: vectorStore,
         combineDocumentsChain: docChain,
         questionGeneratorChain: questionGenerator,
-        returnSourceDocuments: true
+        returnSourceDocuments: true,
+        k: 1
     });
 
     const response = await chain.call({
         question: prompt,
         chat_history: [],
     });
+
+    console.log(response)
 
     res.status(200).json({response: response.text})
 }
