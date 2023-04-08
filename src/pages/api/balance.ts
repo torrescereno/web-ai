@@ -6,9 +6,8 @@ import {OpenAIEmbeddings} from "langchain/embeddings";
 import {LLMChain, ChatVectorDBQAChain, loadQAChain} from "langchain/chains";
 import {PromptTemplate} from 'langchain/prompts';
 
-import * as dotenv from "dotenv";
 
-dotenv.config()
+// dotenv.config()
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse,) {
 
@@ -20,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
 
     const textSplitter = new RecursiveCharacterTextSplitter({chunkSize: 1000});
     const docs = await textSplitter.createDocuments([text]);
-    const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings());
+    const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
     // --
 
@@ -38,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     );
 
     const questionGenerator = new LLMChain({
-        llm: new OpenAIChat({temperature: temperature}),
+        llm: new OpenAIChat({temperature: temperature, openAIApiKey: apiKey}),
         prompt: CONDENSE_PROMPT,
     });
 
