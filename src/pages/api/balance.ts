@@ -1,79 +1,58 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
-import {OpenAIChat} from "langchain/llms";
 import {RecursiveCharacterTextSplitter} from "langchain/text_splitter";
 import {HNSWLib} from "langchain/vectorstores";
 import {OpenAIEmbeddings} from "langchain/embeddings";
-import {LLMChain, ChatVectorDBQAChain, loadQAChain} from "langchain/chains";
-import {PromptTemplate} from 'langchain/prompts';
+import {makeChain} from "../../../utils/makechain";
 
-
-// dotenv.config()
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse,) {
 
-    const {prompt, apiKey, text, temperature} = JSON.parse(req.body)
+    const {apiKey, question, textFile, temperature} = req.body
 
-    // --
+    if (!question) {
+        return res.status(400).json({message: 'No realizó ninguna pregunta'});
+    }
 
-    const sanitizedQuestion = prompt.trim().replaceAll('\n', ' ');
+    const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
 
     const textSplitter = new RecursiveCharacterTextSplitter({chunkSize: 1000});
-    const docs = await textSplitter.createDocuments([text]);
+    const docs = await textSplitter.createDocuments([textFile]);
     const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
-    // --
 
-    const CONDENSE_PROMPT =
-        PromptTemplate.fromTemplate(`Eres un contador auditor experto`);
-
-    const QA_PROMPT = PromptTemplate.fromTemplate(
-        `Eres una asistente que analizará el texto como un contador auditor experto, no inventes montos ni datos, solo responde a las preguntas en base al texto y al contexto, sigue la conversación y si no sabes la respuesta
-        indícalo diciendo "No tengo suficiente información al respecto"
-                Pregunta: {question}
-                =========
-                {context}
-                =========
-                Response en Texto:`,
-    );
-
-    const questionGenerator = new LLMChain({
-        llm: new OpenAIChat({temperature: temperature, openAIApiKey: apiKey}),
-        prompt: CONDENSE_PROMPT,
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
     });
 
-    const docChain = loadQAChain(
-        new OpenAIChat({
-            openAIApiKey: apiKey,
-            temperature: temperature,
-            modelName: 'gpt-3.5-turbo',
-            streaming: false
-        }),
-        {prompt: QA_PROMPT},
-    );
+    const sendData = (data: string) => {
+        res.write(`data: ${data}\n\n`);
+    };
 
-    const chain = new ChatVectorDBQAChain({
-        vectorstore: vectorStore,
-        combineDocumentsChain: docChain,
-        questionGeneratorChain: questionGenerator,
-        returnSourceDocuments: true,
-        k: 1
+    sendData(JSON.stringify({data: ''}));
+
+    // Creación de la cadena
+    const chain = makeChain(vectorStore, temperature, apiKey, (token: string) => {
+        sendData(JSON.stringify({data: token}));
     });
 
-    const response = await chain.call({
-        question: sanitizedQuestion,
-        chat_history: [],
-    });
+    try {
+        // Realizar una consulta
+        const response = await chain.call({
+            question: sanitizedQuestion,
+            chat_history: [],
+        });
 
-    res.status(200).json({response: response.text})
-    // console.log(response)
+        console.log('response', response);
+        // console.log(vectorStore.docstore)
+        sendData(JSON.stringify({sourceDocs: vectorStore.docstore}));
+    } catch (error) {
+        console.log('error', error);
+    } finally {
+        sendData('[DONE]');
+        res.end();
+    }
 
-    // const chatHistory = sanitizedQuestion + response.text;
-    // const followUpRes = await chain.call({
-    //     question: "De que se trata el texto",
-    //     chat_history: chatHistory,
-    // });
 
-    // res.status(200).json({response: followUpRes.text})
 }
-
-// "\"El monto con la cuenta de balance mayor es de 2,535,978.342 M$ al 31.12.2022 en la cuenta de Clientes Nacionales."
