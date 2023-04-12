@@ -8,6 +8,7 @@ export const makeChain = (
     vectorstore: HNSWLib,
     temperature: number,
     apiKey: string,
+    model: string,
     onTokenStream?: (token: string) => void,
 ) => {
     const CONDENSE_PROMPT =
@@ -29,7 +30,7 @@ export const makeChain = (
     );
 
     const questionGenerator = new LLMChain({
-        llm: new OpenAIChat({temperature: temperature, openAIApiKey: apiKey}),
+        llm: new OpenAIChat({temperature: temperature, openAIApiKey: apiKey, modelName: model}),
         prompt: CONDENSE_PROMPT,
     });
 
@@ -37,7 +38,7 @@ export const makeChain = (
         new OpenAIChat({
             openAIApiKey: apiKey,
             temperature: temperature,
-            modelName: 'gpt-3.5-turbo',
+            modelName: model,
             streaming: Boolean(onTokenStream),
             callbackManager: onTokenStream
                 ? CallbackManager.fromHandlers({

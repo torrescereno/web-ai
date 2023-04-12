@@ -4,10 +4,13 @@ import {HNSWLib} from "langchain/vectorstores";
 import {OpenAIEmbeddings} from "langchain/embeddings";
 import {makeChain} from "../../../utils/makechain";
 
+// export const config = {
+//     runtime: "edge",
+// };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse,) {
 
-    const {apiKey, question, textFile, temperature} = req.body
+    const {apiKey, question, textFile, temperature, model} = req.body
 
     if (!question) {
         return res.status(400).json({message: 'No realizó ninguna pregunta'});
@@ -33,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     sendData(JSON.stringify({data: ''}));
 
     // Creación de la cadena
-    const chain = makeChain(vectorStore, temperature, apiKey, (token: string) => {
+    const chain = makeChain(vectorStore, temperature, apiKey, model, (token: string) => {
         sendData(JSON.stringify({data: token}));
     });
 

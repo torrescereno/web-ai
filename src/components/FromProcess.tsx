@@ -7,7 +7,7 @@ import {fetchEventSource} from '@microsoft/fetch-event-source';
 
 export const FromProcess = () => {
 
-    const {apiKey, temperature} = useParameterContext()
+    const {apiKey, temperature, model} = useParameterContext()
     const [file, setFile] = useState<File>()
     const [loading, setLoading] = useState<boolean>(false)
 
@@ -147,7 +147,7 @@ export const FromProcess = () => {
                     question,
                     textFile,
                     temperature: +temperature,
-                    history
+                    model,
                 }),
 
                 signal: ctrl.signal,
