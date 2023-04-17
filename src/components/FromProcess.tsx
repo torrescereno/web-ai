@@ -1,22 +1,20 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useEffect, useMemo, useRef, useState} from "react";
 import {createFFmpeg, fetchFile} from '@ffmpeg/ffmpeg';
 import {useParameterContext} from "@/hooks/useParameterContext";
 import {Message} from "../../type/chat";
-
-import {fetchEventSource} from '@microsoft/fetch-event-source';
+import JSZip from 'jszip';
 
 export const FromProcess = () => {
 
     const {apiKey, temperature, model} = useParameterContext()
-    const [file, setFile] = useState<File>()
+    const [file, setFile] = useState<File>();
     const [loading, setLoading] = useState<boolean>(false)
-
     const [error, setError] = useState<string | null>(null);
     const [query, setQuery] = useState<string>('');
     const [messageState, setMessageState] = useState<{
         messages: Message[];
         pending?: string;
-        history: [string, string][];
+        history: string;
     }>({
         messages: [
             {
@@ -24,7 +22,7 @@ export const FromProcess = () => {
                 type: 'apiMessage',
             },
         ],
-        history: [],
+        history: "",
     });
 
     const {messages, pending, history} = messageState;
@@ -38,7 +36,9 @@ export const FromProcess = () => {
 
 
     const handleFileUpload = (e: any) => {
-        setFile(e.currentTarget.files[0])
+        // console.log(e.currentTarget.files)
+        setFile(e.currentTarget.files)
+
         setMessageState({
             messages: [
                 {
@@ -46,7 +46,7 @@ export const FromProcess = () => {
                     type: 'apiMessage',
                 },
             ],
-            history: []
+            history: ""
         })
     };
 
@@ -100,19 +100,47 @@ export const FromProcess = () => {
     const handleSubmit = async (e: any) => {
         e.preventDefault();
 
-        let textFile: string
+        setLoading(true);
 
-        if (file?.type.includes('video/mp4')) {
-            textFile = await handleAudio()
-        } else {
-            textFile = await file?.text() as string
+        let textFile: string = ""
+
+        // @ts-ignore
+        for (let i = 0; i < file?.length; i++) {
+            let fileText = ""
+
+            // @ts-ignore
+            if (file[i]?.type.includes('video/mp4')) {
+                fileText = await handleAudio()
+
+                // @ts-ignore
+            } else if (file[i]?.type.includes('text/csv')) {
+
+                // @ts-ignore
+                fileText += await file[i]?.text() as string
+            } else {
+
+                // @ts-ignore
+                const zip = await JSZip.loadAsync(file[i])
+                const files = Object.keys(zip.files)
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = zip.files[files[i]]
+                    const contentXml = await file.async("string")
+                    const text = contentXml.replace(/(<([^>]+)>)/gi, '');
+                    fileText += text
+                }
+
+            }
+
+            // @ts-ignore
+            textFile += "Nombre del documento " + file[i].name + " Formato del documento: " + file[i].type + " Contenido del documento: " + fileText + " "
+
         }
-
 
         setError(null);
 
         if (!query) {
-            alert('Please input a question');
+            alert('Por escriba una pregunta');
             return;
         }
 
@@ -127,17 +155,13 @@ export const FromProcess = () => {
                     message: question,
                 },
             ],
-            pending: undefined,
         }));
 
         setLoading(true);
         setQuery('');
-        setMessageState((state) => ({...state, pending: ''}));
-
-        const ctrl = new AbortController();
 
         try {
-            await fetchEventSource('/api/balance', {
+            const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -148,42 +172,32 @@ export const FromProcess = () => {
                     textFile,
                     temperature: +temperature,
                     model,
+                    history,
                 }),
-
-                signal: ctrl.signal,
-
-                onmessage: (event: any) => {
-                    if (event.data === '[DONE]') {
-                        setMessageState((state) => ({
-                            history: [...state.history, [question, state.pending ?? '']],
-                            messages: [
-                                ...state.messages,
-                                {
-                                    type: 'apiMessage',
-                                    message: state.pending ?? '',
-                                },
-                            ],
-                            pending: undefined,
-                            pendingSourceDocs: undefined,
-                        }));
-                        setLoading(false);
-                        ctrl.abort();
-                    } else {
-                        const data = JSON.parse(event.data);
-                        if (data.sourceDocs) {
-                            setMessageState((state) => ({
-                                ...state,
-                                pendingSourceDocs: data.sourceDocs,
-                            }));
-                        } else {
-                            setMessageState((state) => ({
-                                ...state,
-                                pending: (state.pending ?? '') + data.data,
-                            }));
-                        }
-                    }
-                },
             });
+
+            const data = await response.json();
+
+            if (data.error) {
+                setError(data.error);
+            } else {
+                setMessageState((state) => ({
+                    ...state,
+                    messages: [
+                        ...state.messages,
+                        {
+                            type: 'apiMessage',
+                            message: data.text,
+                            sourceDocs: data.sourceDocuments,
+                        },
+                    ],
+                    history: history + " " + question + " " + data.text + " ",
+                }));
+            }
+
+            setLoading(false);
+
+            messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
         } catch (error) {
             setLoading(false);
             setError('Ocurrió un error al hacer el fetching de datos, por favor intente de nuevo');
@@ -191,16 +205,13 @@ export const FromProcess = () => {
         }
     }
 
-    const handleEnter = useCallback(
-        (e: any) => {
-            if (e.key === 'Enter' && query) {
-                handleSubmit(e).then(r => console.log(r));
-            } else if (e.key == 'Enter') {
-                e.preventDefault();
-            }
-        },
-        [query],
-    );
+    const handleEnter = async (e: any) => {
+        if (e.key === 'Enter' && query) {
+            await handleSubmit(e);
+        } else if (e.key == 'Enter') {
+            e.preventDefault();
+        }
+    };
 
     const chatMessages = useMemo(() => {
         return [
@@ -239,10 +250,11 @@ export const FromProcess = () => {
                         >
                         <input
                             className="block w-full text-sm border rounded-lg cursor-pointer text-gray-400 focus:outline-none bg-gray-700 border-gray-600 placeholder-gray-400"
-                            accept="video/*,text/csv"
+                            accept="video/*,text/csv,.doc,.docx"
                             id="file_input"
                             disabled={loading}
                             type="file"
+                            multiple
                             onChange={handleFileUpload}
                         />
                     </div>
@@ -284,8 +296,6 @@ export const FromProcess = () => {
                                             )
                                         }
                                     })}
-
-
                                 </div>
                             </div>
                         )

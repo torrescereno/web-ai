@@ -1,63 +1,40 @@
-import {PromptTemplate} from "langchain/prompts";
-import {ChatVectorDBQAChain, LLMChain, loadQAChain} from "langchain/chains";
-import {OpenAIChat} from "langchain/llms";
-import {CallbackManager} from "langchain/callbacks";
+import {ConversationalRetrievalQAChain} from "langchain/chains";
+import {OpenAI} from "langchain/llms";
 import {HNSWLib} from "langchain/vectorstores";
+
+
+const CONDENSE_PROMPT = `Dada la siguiente conversación y una pregunta de seguimiento, reformule la pregunta de seguimiento para que sea una pregunta independiente.
+Chat History:
+{chat_history}
+Follow Up Input: {question}
+Standalone question:`;
+
+const QA_PROMPT = `Eres un asistente virtual que analizara y responderá a cada pregunta como un contador auditor experto y tomaras en consideración el contexto de la conversación para proporcionar una respuesta precisa.
+{context}
+Pregunta: {question}
+Responde en texto:`;
 
 export const makeChain = (
     vectorstore: HNSWLib,
     temperature: number,
     apiKey: string,
-    model: string,
-    onTokenStream?: (token: string) => void,
+    model: string
 ) => {
-    const CONDENSE_PROMPT =
-        PromptTemplate.fromTemplate(`  Dada la siguiente conversación y una pregunta de seguimiento, reformule la pregunta de seguimiento para que sea una pregunta independiente.
-                                                Historial del chat:
-                                                {chat_history}
-                                                Seguimiento: {question}
-                                                Pregunta independiente:`);
+    const openModel = new OpenAI({
+        temperature: temperature,
+        modelName: model,
+        openAIApiKey: apiKey,
 
-    const QA_PROMPT = PromptTemplate.fromTemplate(
-        `Eres un contador auditor experto que analizará el texto y proporcionara una respuesta relacionada con el texto, no inventes montos ni datos ni tampoco des consejos.
-                  Si la pregunta no está relacionada con el contexto, responde amablemente que estás preparado para responder sólo a preguntas relacionadas con el contexto.
-                  
-                  Pregunta: {question}
-                  =========
-                  {context}
-                  =========
-                  Response en Texto:`,
-    );
-
-    const questionGenerator = new LLMChain({
-        llm: new OpenAIChat({temperature: temperature, openAIApiKey: apiKey, modelName: model}),
-        prompt: CONDENSE_PROMPT,
     });
 
-    const docChain = loadQAChain(
-        new OpenAIChat({
-            openAIApiKey: apiKey,
-            temperature: temperature,
-            modelName: model,
-            streaming: Boolean(onTokenStream),
-            callbackManager: onTokenStream
-                ? CallbackManager.fromHandlers({
-                    async handleLLMNewToken(token) {
-                        onTokenStream(token);
-                        // console.log(token);
-                    },
-                })
-                : undefined,
-        }),
-        {prompt: QA_PROMPT},
+    return ConversationalRetrievalQAChain.fromLLM(
+        openModel,
+        vectorstore.asRetriever(),
+        {
+            qaTemplate: QA_PROMPT,
+            questionGeneratorTemplate: CONDENSE_PROMPT,
+            returnSourceDocuments: false,
+        },
     );
-
-    return new ChatVectorDBQAChain({
-        vectorstore,
-        combineDocumentsChain: docChain,
-        questionGeneratorChain: questionGenerator,
-        returnSourceDocuments: true,
-        // k: 10,
-    });
 
 }

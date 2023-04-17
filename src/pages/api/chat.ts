@@ -4,13 +4,15 @@ import {HNSWLib} from "langchain/vectorstores";
 import {OpenAIEmbeddings} from "langchain/embeddings";
 import {makeChain} from "../../../utils/makechain";
 
-// export const config = {
-//     runtime: "edge",
-// };
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse,) {
 
-    const {apiKey, question, textFile, temperature, model} = req.body
+    const {apiKey, question, textFile, temperature, model, history} = req.body
+
+
+    if (req.method !== 'POST') {
+        res.status(405).json({error: 'Metodo no permitido'});
+        return;
+    }
 
     if (!question) {
         return res.status(400).json({message: 'No realizó ninguna pregunta'});
@@ -22,39 +24,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     const docs = await textSplitter.createDocuments([textFile]);
     const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
-
-    res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-    });
-
-    const sendData = (data: string) => {
-        res.write(`data: ${data}\n\n`);
-    };
-
-    sendData(JSON.stringify({data: ''}));
-
-    // Creación de la cadena
-    const chain = makeChain(vectorStore, temperature, apiKey, model, (token: string) => {
-        sendData(JSON.stringify({data: token}));
-    });
+    const chain = makeChain(vectorStore, temperature, apiKey, model);
 
     try {
-        // Realizar una consulta
         const response = await chain.call({
             question: sanitizedQuestion,
-            chat_history: [],
+            chat_history: history || [],
         });
 
-        console.log('response', response);
-        // console.log(vectorStore.docstore)
-        sendData(JSON.stringify({sourceDocs: vectorStore.docstore}));
-    } catch (error) {
+        // console.log('response', response);
+        res.status(200).json(response);
+    } catch (error: any) {
         console.log('error', error);
-    } finally {
-        sendData('[DONE]');
-        res.end();
+        res.status(500).json({error: error.message || 'Algo salió mal'});
     }
 
 
