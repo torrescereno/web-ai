@@ -19,12 +19,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     }
 
     const sanitizedQuestion = question.trim().replaceAll('\n', ' ');
-
     const textSplitter = new RecursiveCharacterTextSplitter({chunkSize: 1000});
     const docs = await textSplitter.createDocuments([textFile]);
     const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
-    const chain = makeChain(vectorStore, temperature, apiKey, model);
+    res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        // Important to set no-transform to avoid compression, which will delay
+        // writing response chunks to the client.
+        // See https://github.com/vercel/next.js/issues/9965
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+
+    });
+
+    const sendData = (data: string) => {
+        res.write(`data: ${data}\n\n`);
+    };
+
+    sendData(JSON.stringify({data: ""}));
+
+    const chain = makeChain(vectorStore, temperature, apiKey, model, (token: string) => {
+        sendData(JSON.stringify({data: token}));
+    });
 
     try {
         const response = await chain.call({
@@ -33,10 +50,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
         });
 
         // console.log('response', response);
-        res.status(200).json(response);
+        // res.status(200).json(response);
     } catch (error: any) {
         console.log('error', error);
-        res.status(500).json({error: error.message || 'Algo salió mal'});
+        // res.status(500).json({error: error.message || 'Algo salió mal'});
+    } finally {
+        sendData("[DONE]");
+        res.end();
     }
 
 

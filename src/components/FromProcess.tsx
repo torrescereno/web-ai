@@ -3,6 +3,7 @@ import {createFFmpeg, fetchFile} from '@ffmpeg/ffmpeg';
 import {useParameterContext} from "@/hooks/useParameterContext";
 import {Message} from "../../type/chat";
 import JSZip from 'jszip';
+import {fetchEventSource} from '@microsoft/fetch-event-source';
 
 export const FromProcess = () => {
 
@@ -24,6 +25,7 @@ export const FromProcess = () => {
         ],
         history: "",
     });
+
 
     const {messages, pending, history} = messageState;
 
@@ -155,13 +157,17 @@ export const FromProcess = () => {
                     message: question,
                 },
             ],
+            pending: undefined,
         }));
 
         setLoading(true);
         setQuery('');
+        setMessageState((state) => ({...state, pending: ''}));
+
+        const ctrl = new AbortController();
 
         try {
-            const response = await fetch('/api/chat', {
+            await fetchEventSource('/api/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -174,33 +180,40 @@ export const FromProcess = () => {
                     model,
                     history,
                 }),
+                signal: ctrl.signal,
+                onmessage: (event) => {
+                    if (event.data === '[DONE]') {
+                        setMessageState((state) => ({
+                            history: state.history + question + state.pending ?? '',
+                            messages: [
+                                ...state.messages,
+                                {
+                                    type: 'apiMessage',
+                                    message: state.pending ?? '',
+                                },
+                            ],
+                            pending: undefined,
+                        }));
+                        setLoading(false);
+                        ctrl.abort();
+                    } else {
+                        const data = JSON.parse(event.data);
+                        if (data.sourceDocs) {
+                            setMessageState((state) => ({
+                                ...state,
+                                pendingSourceDocs: data.sourceDocs,
+                            }));
+                        } else {
+                            setMessageState((state) => ({
+                                ...state,
+                                pending: (state.pending ?? '') + data.data,
+                            }));
+                        }
+                    }
+                },
             });
-
-            const data = await response.json();
-
-            if (data.error) {
-                setError(data.error);
-            } else {
-                setMessageState((state) => ({
-                    ...state,
-                    messages: [
-                        ...state.messages,
-                        {
-                            type: 'apiMessage',
-                            message: data.text,
-                            sourceDocs: data.sourceDocuments,
-                        },
-                    ],
-                    history: history + " " + question + " " + data.text + " ",
-                }));
-            }
-
-            setLoading(false);
-
-            messageListRef.current?.scrollTo(0, messageListRef.current.scrollHeight);
         } catch (error) {
             setLoading(false);
-            setError('Ocurrió un error al hacer el fetching de datos, por favor intente de nuevo');
             console.log('error', error);
         }
     }
@@ -214,17 +227,7 @@ export const FromProcess = () => {
     };
 
     const chatMessages = useMemo(() => {
-        return [
-            ...messages,
-            ...(pending
-                ? [
-                    {
-                        type: 'apiMessage',
-                        message: pending,
-                    },
-                ]
-                : []),
-        ];
+        return [...messages, ...(pending ? [{type: "apiMessage", message: pending}] : [])];
     }, [messages, pending]);
 
     useEffect(() => {

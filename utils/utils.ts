@@ -4,3 +4,4 @@ export const getStorageData = (keyName: string, defaultValue: string) => {
         return savedItem || defaultValue;
     }
 }
+
