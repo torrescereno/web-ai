@@ -23,15 +23,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     const docs = await textSplitter.createDocuments([textFile]);
     const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
-    res.writeHead(200, {
-        "Content-Type": "text/event-stream",
-        // Important to set no-transform to avoid compression, which will delay
-        // writing response chunks to the client.
-        // See https://github.com/vercel/next.js/issues/9965
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-
-    });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'text/event-stream;charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('X-Accel-Buffering', 'no');
 
     const sendData = (data: string) => {
         res.write(`data: ${data}\n\n`);
