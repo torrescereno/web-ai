@@ -25,10 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
 
     res.writeHead(200, {
         Connection: "keep-alive",
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
+        "Content-Type": "text/event-stream;charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
         'Content-Encoding': 'none',
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        'X-Accel-Buffering': 'no'
     });
 
     const sendData = (data: string) => {
