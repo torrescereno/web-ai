@@ -4,10 +4,10 @@ import {HNSWLib} from "langchain/vectorstores";
 import {OpenAIEmbeddings} from "langchain/embeddings";
 import {makeChain} from "../../../utils/makechain";
 
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse,) {
 
     const {apiKey, question, textFile, temperature, model, history} = req.body
-
 
     if (req.method !== 'POST') {
         res.status(405).json({error: 'Metodo no permitido'});
@@ -23,10 +23,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     const docs = await textSplitter.createDocuments([textFile]);
     const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'text/event-stream;charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-transform');
-    res.setHeader('X-Accel-Buffering', 'no');
+    res.writeHead(200, {
+        Connection: "keep-alive",
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        'Content-Encoding': 'none',
+        "Access-Control-Allow-Origin": "*"
+    });
 
     const sendData = (data: string) => {
         res.write(`data: ${data}\n\n`);
