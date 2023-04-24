@@ -1,20 +1,9 @@
-import {ConversationalRetrievalQAChain} from "langchain/chains";
-import {OpenAI} from "langchain/llms";
+import {ChatVectorDBQAChain, ConversationalRetrievalQAChain, LLMChain, loadQAChain} from "langchain/chains";
+import {OpenAI, OpenAIChat} from "langchain/llms";
 import {HNSWLib} from "langchain/vectorstores";
 import {CallbackManager} from "langchain/callbacks";
+import {PromptTemplate} from "langchain";
 
-
-const CONDENSE_PROMPT = `Dada la siguiente conversación y una pregunta de seguimiento, reformule la pregunta de seguimiento para que sea una pregunta independiente.
-Chat History:
-{chat_history}
-Follow Up Input: {question}
-Standalone question:`;
-
-const QA_PROMPT = `Eres un asistente virtual que analizara y responderá a cada pregunta como un contador auditor experto y tomaras en consideración el contexto del historial de la conversación para proporcionar una respuesta precisa.
-Si se despiden, despídete cordialmente. Debes mantener siempre presente el historial de conversación y recordaras las preguntas anteriores.
-Contexto: {context}
-Pregunta: {question}
-Responde en texto:`;
 
 export const makeChain = (
     vectorstore: HNSWLib,
@@ -23,29 +12,47 @@ export const makeChain = (
     model: string,
     onTokenStream?: (token: string) => void
 ) => {
-    const openModel = new OpenAI({
-        temperature: temperature,
-        modelName: model,
-        openAIApiKey: apiKey,
-        verbose: true,
-        streaming: Boolean(onTokenStream),
-        callbackManager: onTokenStream ?
-            CallbackManager.fromHandlers({
-                async handleLLMNewToken(token) {
-                    onTokenStream(token);
-                    // console.log(token);
-                },
-            }) : undefined,
-    });
 
-    return ConversationalRetrievalQAChain.fromLLM(
-        openModel,
-        vectorstore.asRetriever(),
-        {
-            qaTemplate: QA_PROMPT,
-            questionGeneratorTemplate: CONDENSE_PROMPT,
-            returnSourceDocuments: false,
-        },
+    const CONDENSE_PROMPT =
+        PromptTemplate.fromTemplate(`Dada la siguiente conversación y una pregunta de seguimiento, reformule la pregunta de seguimiento para que sea una pregunta independiente.
+                                    Chat History: {chat_history}
+                                    Follow Up Input: {question}
+                                    Standalone question: `)
+
+    const QA_PROMPT = PromptTemplate.fromTemplate(`Eres un asistente virtual que analizara y responderá a cada pregunta como un contador auditor experto y tomaras en consideración el contexto de la conversación para proporcionar una respuesta precisa.
+                    Pregunta: {question}
+                    =========
+                    {context}
+                    =========
+                    Response en Texto:`)
+
+    const questionGenerator = new LLMChain({
+        llm: new OpenAIChat({temperature: temperature, modelName: model, openAIApiKey: apiKey}),
+        prompt: CONDENSE_PROMPT,
+    });
+    const docChain = loadQAChain(
+        new OpenAIChat({
+            temperature: temperature,
+            modelName: model,
+            openAIApiKey: apiKey,
+            streaming: Boolean(onTokenStream),
+            callbackManager: onTokenStream
+                ? CallbackManager.fromHandlers({
+                    async handleLLMNewToken(token) {
+                        onTokenStream(token);
+                        console.log(token);
+                    },
+                })
+                : undefined,
+        }),
+        {prompt: QA_PROMPT},
     );
+
+    return new ChatVectorDBQAChain({
+        vectorstore,
+        combineDocumentsChain: docChain,
+        questionGeneratorChain: questionGenerator,
+        returnSourceDocuments: false
+    });
 
 }

@@ -4,13 +4,12 @@ import {HNSWLib} from "langchain/vectorstores";
 import {OpenAIEmbeddings} from "langchain/embeddings";
 import {makeChain} from "../../../utils/makechain";
 
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse,) {
+const handler = async (req: NextApiRequest, res: NextApiResponse,) => {
 
     const {apiKey, question, textFile, temperature, model, history} = req.body
 
     if (req.method !== 'POST') {
-        res.status(405).json({error: 'Metodo no permitido'});
+        res.status(405).json({error: 'Método no permitido'});
         return;
     }
 
@@ -24,23 +23,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
     const vectorStore = await HNSWLib.fromDocuments(docs, new OpenAIEmbeddings({openAIApiKey: apiKey}));
 
     res.writeHead(200, {
-        Connection: "keep-alive",
-        "Content-Type": "text/event-stream;charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        'Content-Encoding': 'none',
-        "Access-Control-Allow-Origin": "*",
-        'X-Accel-Buffering': 'no'
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
     });
 
     const sendData = (data: string) => {
         res.write(`data: ${data}\n\n`);
     };
 
-    sendData(JSON.stringify({data: ""}));
+    sendData(JSON.stringify({data: ''}));
+
 
     const chain = makeChain(vectorStore, temperature, apiKey, model, (token: string) => {
         sendData(JSON.stringify({data: token}));
     });
+
 
     try {
         const response = await chain.call({
@@ -52,11 +50,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse,
         // res.status(200).json(response);
     } catch (error: any) {
         console.log('error', error);
-        // res.status(500).json({error: error.message || 'Algo salió mal'});
+        res.status(500).json({error: error.message || 'Algo salió mal'});
     } finally {
         sendData("[DONE]");
         res.end();
     }
-
-
 }
+
+export default handler;

@@ -198,17 +198,10 @@ export const FromProcess = () => {
                         ctrl.abort();
                     } else {
                         const data = JSON.parse(event.data);
-                        if (data.sourceDocs) {
-                            setMessageState((state) => ({
-                                ...state,
-                                pendingSourceDocs: data.sourceDocs,
-                            }));
-                        } else {
-                            setMessageState((state) => ({
-                                ...state,
-                                pending: (state.pending ?? '') + data.data,
-                            }));
-                        }
+                        setMessageState((state) => ({
+                            ...state,
+                            pending: (state.pending ?? '') + data.data,
+                        }));
                     }
                 },
             });
